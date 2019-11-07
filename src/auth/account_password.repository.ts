@@ -1,18 +1,19 @@
 import * as crypto from 'crypto';
 import { EntityRepository, MoreThan, Repository } from 'typeorm';
-import { AccountPassword } from './account-password.entity';
-import { AuthCredentialsDto } from './dto/auth-credentials.dto';
+import { AccountPassword } from './account_password.entity';
+import { AccountDto } from './dto/account.dto';
 import { BadRequestException, InternalServerErrorException, NotFoundException, Req, Res } from '@nestjs/common';
 import { Account } from './account.entity';
 import { Email } from '../shared/email';
-import { AccountPasswordDto } from './dto/account-password.dto';
+import { AccountPasswordDto } from './dto/account_password.dto';
+import { Request } from 'express';
 
 @EntityRepository(AccountPassword)
 export class AccountPasswordRepository extends Repository<AccountPassword>
 {
-    async forgotPassword(authCredentialsDto: AuthCredentialsDto, @Req() req, @Res() res): Promise<void>
+    async forgotPassword(accountDto: AccountDto, request: Request): Promise<object>
     {
-        const account = await Account.findOne({ reg_mail: authCredentialsDto.email });
+        const account = await Account.findOne({ reg_mail: accountDto.email });
 
         if (!account)
             throw new NotFoundException('There is no account with email address');
@@ -29,9 +30,9 @@ export class AccountPasswordRepository extends Repository<AccountPassword>
 
         try
         {
-            const resetURL = `${req.protocol}://${req.get('host')}/auth/resetPassword/${resetToken}`;
+            const resetURL = `${request.protocol}://${request.get('host')}/auth/resetPassword/${resetToken}`;
             await new Email(account, resetURL).sendPasswordReset();
-            res.status(200).json({ status: 'success', message: 'Token sent to email' });
+            return { status: 'success', message: 'Token sent to email' };
         }
         catch (error)
         {
@@ -42,7 +43,7 @@ export class AccountPasswordRepository extends Repository<AccountPassword>
         }
     }
 
-    async resetPassword(accountPasswordDto: AccountPasswordDto, @Res() res, token: string): Promise<void>
+    async resetPassword(accountPasswordDto: AccountPasswordDto, token: string): Promise<object>
     {
         const { password, passwordConfirm } = accountPasswordDto;
         const hashedToken: string = crypto.createHash('sha256').update(token).digest('hex');
@@ -66,6 +67,6 @@ export class AccountPasswordRepository extends Repository<AccountPassword>
         accountPassword.password_reset_token = null;
         await accountPassword.save();
 
-        res.status(200).json({ status: 'success', message: 'Your password has been reset successfully!' });
+        return { status: 'success', message: 'Your password has been reset successfully!' };
     }
 }

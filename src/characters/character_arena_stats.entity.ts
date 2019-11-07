@@ -1,20 +1,17 @@
 import { BaseEntity, Column, Entity, PrimaryColumn } from 'typeorm';
 
 @Entity({ synchronize: false })
-export class GuildMember extends BaseEntity
+export class CharacterArenaStats extends BaseEntity
 {
-    @Column()
-    guildid: number;
-
     @PrimaryColumn()
     guid: number;
 
-    @Column()
-    rank: number;
+    @PrimaryColumn()
+    slot: number;
 
     @Column()
-    pnote: string;
+    matchMakerRating: number;
 
     @Column()
-    offnote: string;
+    maxMMR: number;
 }

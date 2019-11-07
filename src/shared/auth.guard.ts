@@ -1,8 +1,7 @@
-import { promisify } from 'util';
 import { CanActivate, ExecutionContext, Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
 import * as jwt from 'jsonwebtoken';
 import { Account } from '../auth/account.entity';
-import { AccountPassword } from '../auth/account-password.entity';
+import { AccountPassword } from '../auth/account_password.entity';
 
 @Injectable()
 export class AuthGuard implements CanActivate
@@ -21,13 +20,15 @@ export class AuthGuard implements CanActivate
 
         if (request.headers.authorization && request.headers.authorization.startsWith('Bearer'))
             token = request.headers.authorization.split(' ')[1];
+        else if (request.cookies.jwt)
+            token = request.cookies.jwt;
 
         if (!token)
             throw new UnauthorizedException('You are not logged in! Please log in to get access.');
 
         try
         {
-            this.decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET_KEY);
+            this.decoded = await jwt.verify(token, process.env.JWT_SECRET_KEY);
         }
         catch (error)
         {
@@ -45,10 +46,11 @@ export class AuthGuard implements CanActivate
         }
 
         const accountExists = await Account.findOne({ where: { id: this.decoded.id } });
-        accountExists.sha_pass_hash = undefined;
 
         if (!accountExists)
             throw new UnauthorizedException('The account belonging to this token does no longer exist.');
+
+        accountExists.sha_pass_hash = undefined;
 
         const accountPassword = await AccountPassword.findOne({ where: { id: this.decoded.id } });
 
